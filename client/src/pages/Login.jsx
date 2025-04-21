@@ -21,12 +21,14 @@ const Login = () => {
 
     try {
       const res = await axios.post("http://localhost:5000/api/auth/login", form);
-      login(res.data);
+      login(res.data); // Save the login data to the context
 
       if (res.data.role === "student") {
-        navigate("/student");
+        navigate("/student"); // Redirect to student dashboard
       } else if (res.data.role === "company") {
-        navigate("/company");
+        navigate("/company"); // Redirect to company dashboard
+      } else if (res.data.role === "admin") {
+        navigate("/admin-dashboard"); // Redirect to Tansche admin dashboard
       }
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");

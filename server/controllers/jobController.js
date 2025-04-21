@@ -5,8 +5,9 @@ import {
   getJobById,
   updateJob,
   deleteJob,
-  getCompanyDashboardStats
-} from '../models/jobModel.js';
+  getCompanyDashboardStats,
+  getTanscheDashboardStats
+} from '../models/jobModel.js'; // Assuming the necessary functions are present in the model
 
 // Create Job
 export const createJobProfile = (req, res) => {
@@ -152,6 +153,19 @@ export const getCompanyStats = (req, res) => {
   const companyId = req.user.id;
   getCompanyDashboardStats(companyId, (err, stats) => {
     if (err) return res.status(500).json({ error: "Failed to fetch stats" });
+    res.json(stats);
+  });
+};
+
+// Get Tansche Dashboard Stats
+export const getTanscheStats = (req, res) => {
+  getTanscheDashboardStats((err, stats) => {
+    if (err) {
+      console.error("Error fetching Tansche dashboard stats:", err);
+      return res.status(500).json({ message: "Error fetching Tansche dashboard stats" });
+    }
+
+    console.log("Tansche Stats:", stats);  // Log to check data before sending response
     res.json(stats);
   });
 };

@@ -4,7 +4,10 @@ import Register from "./pages/Register";
 import Login from "./pages/Login";
 import CompanyDashboard from "./pages/CompanyDashboard";
 import StudentDashboard from "./pages/StudentDashboard";
-import ProtectedRoute from "./components/ProtectedRoute"; // Make sure this exists
+import TanscheDashboard from "./pages/TanscheDashboard"; // Import the new TanscheDashboard
+
+import ProtectedRoute from "./components/ProtectedRoute"; // ProtectedRoute for role-based access
+
 
 function App() {
   return (
@@ -15,16 +18,25 @@ function App() {
           <Route path="/" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
+          
           <Route path="/company" element={
             <ProtectedRoute role="company">
               <CompanyDashboard />
             </ProtectedRoute>
           } />
+          
           <Route path="/student" element={
             <ProtectedRoute role="student">
               <StudentDashboard />
             </ProtectedRoute>
           } />
+          
+          <Route path="/admin-dashboard" element={
+            <ProtectedRoute role="admin">
+              <TanscheDashboard /> {/* Tansche Admin Dashboard */}
+            </ProtectedRoute>
+          } />
+          
         </Routes>
       </div>
     </Router>
