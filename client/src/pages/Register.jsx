@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "../services/api"; // Ensure this is correctly imported
+import qualifications from "../data/qualifications"; // Import qualifications data
 
 const Register = () => {
   const [role, setRole] = useState("student");
@@ -16,11 +17,21 @@ const Register = () => {
     companyWebsite: "",
     collegeName: "",
     stream: "",
+    qualification: "", // Add qualification field
   });
 
   const [message, setMessage] = useState(""); // Success message
   const [error, setError] = useState(""); // Error message
   const navigate = useNavigate(); // Hook for navigation
+
+  const [availableQualifications, setAvailableQualifications] = useState([]); // For dynamic qualifications list
+
+  useEffect(() => {
+    if (formData.stream) {
+      const qualificationsForStream = qualifications[formData.stream] || [];
+      setAvailableQualifications(qualificationsForStream);
+    }
+  }, [formData.stream]); // Trigger when stream changes
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -43,6 +54,7 @@ const Register = () => {
       company_website: role === "company" ? formData.companyWebsite : null,
       college_name: role === "student" ? formData.collegeName : null,
       stream: role === "student" ? formData.stream : null,
+      qualification: role === "student" ? formData.qualification : null, // Add qualification
     };
 
     try {
@@ -96,6 +108,7 @@ const Register = () => {
 
         {role === "company" ? (
           <>
+            {/* Company Fields */}
             <label className="block">
               Company Name
               <input
@@ -153,6 +166,7 @@ const Register = () => {
           </>
         ) : (
           <>
+            {/* Student Fields */}
             <label className="block">
               College Name
               <input
@@ -164,17 +178,45 @@ const Register = () => {
                 required
               />
             </label>
+
             <label className="block">
               Stream
-              <input
-                type="text"
+              <select
                 name="stream"
                 value={formData.stream}
                 onChange={handleChange}
                 className="w-full p-2 border rounded mt-1"
                 required
-              />
+              >
+                <option value="">Select Stream</option>
+                <option value="BE">B.E</option>
+                <option value="BTech">BTech</option>
+                <option value="ME">M.E</option>
+                <option value="MTech">MTech</option>
+              </select>
             </label>
+
+            {/* Qualification Dropdown */}
+            {formData.stream && (
+              <label className="block">
+                Qualification
+                <select
+                  name="qualification"
+                  value={formData.qualification}
+                  onChange={handleChange}
+                  className="w-full p-2 border rounded mt-1"
+                  required
+                >
+                  <option value="">Select Qualification</option>
+                  {availableQualifications.map((qualification, index) => (
+                    <option key={index} value={qualification}>
+                      {qualification}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
             <label className="block">
               Phone Number
               <input

@@ -9,13 +9,15 @@ const CompanyStatsDashboard = () => {
     jobStats: [],
   });
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const jobsPerPage = 10;
+
   const [loading, setLoading] = useState(true);
 
   const fetchStats = async () => {
     try {
       const res = await axios.get("/jobs/company/stats");
       setStats(res.data);
-      console.log("Stats response:", res.data); // Debugging
     } catch (err) {
       console.error("Failed to fetch stats", err);
     } finally {
@@ -26,6 +28,19 @@ const CompanyStatsDashboard = () => {
   useEffect(() => {
     fetchStats();
   }, []);
+
+  // Pagination logic
+  const totalPages = Math.ceil(stats.jobStats.length / jobsPerPage);
+  const startIndex = (currentPage - 1) * jobsPerPage;
+  const currentJobs = stats.jobStats.slice(startIndex, startIndex + jobsPerPage);
+
+  const handlePrevious = () => {
+    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
+  };
+
+  const handleNext = () => {
+    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
+  };
 
   if (loading) return <p className="text-center mt-10 text-lg">Loading...</p>;
 
@@ -49,9 +64,9 @@ const CompanyStatsDashboard = () => {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Job Table */}
       <h3 className="text-xl font-semibold mb-2">Job Statistics</h3>
-      <table className="w-full border border-gray-300">
+      <table className="w-full border border-gray-300 mb-4">
         <thead>
           <tr className="bg-gray-100">
             <th className="p-2 border">Job Title</th>
@@ -60,7 +75,7 @@ const CompanyStatsDashboard = () => {
           </tr>
         </thead>
         <tbody>
-          {(stats.jobStats || []).map((job) => (
+          {currentJobs.map((job) => (
             <tr key={job.id}>
               <td className="p-2 border">{job.title}</td>
               <td className="p-2 border">{job.vacancies}</td>
@@ -69,6 +84,25 @@ const CompanyStatsDashboard = () => {
           ))}
         </tbody>
       </table>
+
+      {/* Pagination Buttons */}
+      <div className="flex justify-between">
+        <button
+          onClick={handlePrevious}
+          disabled={currentPage === 1}
+          className={`px-4 py-2 rounded ${currentPage === 1 ? "bg-gray-300 cursor-not-allowed" : "bg-blue-500 text-white hover:bg-blue-600"}`}
+        >
+          Previous
+        </button>
+        <span className="text-gray-700 self-center">Page {currentPage} of {totalPages}</span>
+        <button
+          onClick={handleNext}
+          disabled={currentPage === totalPages || totalPages === 0}
+          className={`px-4 py-2 rounded ${currentPage === totalPages || totalPages === 0 ? "bg-gray-300 cursor-not-allowed" : "bg-blue-500 text-white hover:bg-blue-600"}`}
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 };

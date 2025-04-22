@@ -2,8 +2,12 @@ import db from "../config/db.js";
 
 export const createUser = (user, callback) => {
   const sql = `
-    INSERT INTO users (name, email, password, role, company_name, phone, location, sector, company_website, college_name, stream) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    INSERT INTO users (
+      name, email, password, role,
+      company_name, phone, location, sector, company_website,
+      college_name, stream, qualification
+    ) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
   db.query(sql, [
     user.name,
@@ -16,7 +20,8 @@ export const createUser = (user, callback) => {
     user.sector || null,
     user.company_website || null,
     user.college_name || null,
-    user.stream || null
+    user.stream || null,
+    user.qualification || null,
   ], callback);
 };
 

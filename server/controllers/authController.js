@@ -3,7 +3,21 @@ import jwt from "jsonwebtoken";
 import { createUser, getUserByEmail } from "../models/userModel.js";
 
 export const register = async (req, res) => {
-  const { name, email, password, confirmPassword, role, phone, location, company_name, sector, company_website, college_name, stream } = req.body;
+  const {
+    name,
+    email,
+    password,
+    confirmPassword,
+    role,
+    phone,
+    location,
+    company_name,
+    sector,
+    company_website,
+    college_name,
+    stream,
+    qualification // Added qualification
+  } = req.body;
 
   if (password !== confirmPassword) {
     return res.status(400).json({ message: "Passwords do not match" });
@@ -30,6 +44,7 @@ export const register = async (req, res) => {
       company_website: role === "company" ? company_website : null,
       college_name: role === "student" ? college_name : null,
       stream: role === "student" ? stream : null,
+      qualification: role === "student" ? qualification : null // Ensure it's added
     };
 
     createUser(newUser, (err) => {
