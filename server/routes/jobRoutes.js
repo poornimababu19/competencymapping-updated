@@ -7,7 +7,7 @@ import {
   deleteJobProfile,
   getCompanyStats,
   getJobByIdController,
-  getTanscheStats
+  getTanscheStats,getPaginatedCompanyJobs
 } from "../controllers/jobController.js";
 import { verifyToken, checkRole } from "../middleware/authMiddleware.js";
 
@@ -24,5 +24,7 @@ router.get("/tansche/stats", verifyToken, checkRole("admin"), getTanscheStats); 
 router.post("/", verifyToken, checkRole("company"), createJobProfile);
 router.put("/:id", verifyToken, checkRole("company"), updateJobProfile);
 router.delete("/:id", verifyToken, checkRole("company"), deleteJobProfile);
+router.get("/company/dashboard/jobs", verifyToken, checkRole("company"), getPaginatedCompanyJobs);
+
 
 export default router;

@@ -37,7 +37,7 @@ export const getJobById = (jobId, callback) => {
   const query = `SELECT * FROM jobs WHERE id = ?`;
   db.query(query, [jobId], (err, results) => {
     if (err) return callback(err);
-    callback(null, results[0]); // Return a single job
+    callback(null, results[0]);
   });
 };
 
@@ -113,12 +113,6 @@ export const getTanscheDashboardStats = (callback) => {
   const totalStudentsAppliedQuery = `SELECT COUNT(*) AS total_students FROM users WHERE role = 'student'`;
   const totalCompaniesQuery = `SELECT COUNT(DISTINCT company_id) AS total_companies FROM jobs`;
 
-  const jobStatsQuery = `
-    SELECT j.id, j.title, j.vacancies, COUNT(a.id) AS appliedCount
-    FROM jobs j
-    LEFT JOIN applications a ON j.id = a.job_id
-    GROUP BY j.id`;
-
   db.query(totalJobsQuery, (err, totalJobsResult) => {
     if (err) return callback(err);
 
@@ -131,20 +125,63 @@ export const getTanscheDashboardStats = (callback) => {
         db.query(totalCompaniesQuery, (err, totalCompaniesResult) => {
           if (err) return callback(err);
 
-          db.query(jobStatsQuery, (err, jobStatsResult) => {
-            if (err) return callback(err);
-
-            callback(null, {
-              totalJobs: totalJobsResult[0]?.total_jobs || 0,
-              totalVacancies: totalVacanciesResult[0]?.total_vacancies || 0,
-              totalApplications: totalStudentsAppliedResult[0]?.total_students || 0, // ✅ FIXED HERE
-              totalCompanies: totalCompaniesResult[0]?.total_companies || 0,
-              jobStats: jobStatsResult || [],
-            });
-            
+          callback(null, {
+            totalJobs: totalJobsResult[0]?.total_jobs || 0,
+            totalVacancies: totalVacanciesResult[0]?.total_vacancies || 0,
+            totalApplications: totalStudentsAppliedResult[0]?.total_students || 0,
+            totalCompanies: totalCompaniesResult[0]?.total_companies || 0,
           });
         });
       });
+    });
+  });
+};
+
+// Get paginated jobs for Tansche
+export const getPaginatedJobsForTansche = (limit, offset, callback) => {
+  const countQuery = `SELECT COUNT(*) AS total FROM jobs`;
+
+  const jobsQuery = `
+    SELECT j.id, j.title, j.vacancies, COUNT(a.id) AS appliedCount
+    FROM jobs j
+    LEFT JOIN applications a ON j.id = a.job_id
+    GROUP BY j.id
+    ORDER BY j.created_at DESC, j.id DESC
+    LIMIT ? OFFSET ?
+  `;
+
+  db.query(countQuery, (err, countResult) => {
+    if (err) return callback(err);
+
+    db.query(jobsQuery, [limit, offset], (err, jobs) => {
+      if (err) return callback(err);
+
+      const total = countResult[0]?.total || 0;
+      callback(null, jobs, total);
+    });
+  });
+};
+
+// ✅ Get paginated jobs by company
+export const getPaginatedJobsByCompany = (companyId, limit, offset, callback) => {
+  const countQuery = `SELECT COUNT(*) AS total FROM jobs WHERE company_id = ?`;
+  const jobsQuery = `
+    SELECT j.id, j.title, j.vacancies, COUNT(a.id) AS appliedCount
+    FROM jobs j
+    LEFT JOIN applications a ON j.id = a.job_id
+    WHERE j.company_id = ?
+    GROUP BY j.id
+    ORDER BY j.created_at DESC
+    LIMIT ? OFFSET ?`;
+
+  db.query(countQuery, [companyId], (err, countResult) => {
+    if (err) return callback(err);
+
+    db.query(jobsQuery, [companyId, limit, offset], (err, jobs) => {
+      if (err) return callback(err);
+
+      const total = countResult[0]?.total || 0;
+      callback(null, jobs, total);
     });
   });
 };

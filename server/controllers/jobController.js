@@ -6,8 +6,10 @@ import {
   updateJob,
   deleteJob,
   getCompanyDashboardStats,
-  getTanscheDashboardStats
-} from '../models/jobModel.js'; // Assuming the necessary functions are present in the model
+  getTanscheDashboardStats,
+  getPaginatedJobsForTansche,
+  getPaginatedJobsByCompany
+} from '../models/jobModel.js';
 
 // Create Job
 export const createJobProfile = (req, res) => {
@@ -39,7 +41,7 @@ export const createJobProfile = (req, res) => {
   });
 };
 
-// Get All Jobs
+// Get All Jobs with Pagination and Sorting
 export const getJobs = (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
@@ -60,7 +62,7 @@ export const getJobs = (req, res) => {
   });
 };
 
-// Get Jobs by Company
+// Get Jobs by Logged-In Company
 export const getCompanyJobs = (req, res) => {
   const company_id = req.user.id;
 
@@ -89,7 +91,7 @@ export const getJobByIdController = (req, res) => {
   });
 };
 
-// Update Job
+// Update Job by ID (Company Authenticated)
 export const updateJobProfile = (req, res) => {
   const jobId = req.params.id;
   const company_id = req.user.id;
@@ -130,7 +132,7 @@ export const updateJobProfile = (req, res) => {
   });
 };
 
-// Delete Job
+// Delete Job by ID
 export const deleteJobProfile = (req, res) => {
   const jobId = req.params.id;
 
@@ -148,24 +150,106 @@ export const deleteJobProfile = (req, res) => {
   });
 };
 
-// Get Company Dashboard Stats
+// Get Company Dashboard Stats + Paginated Jobs
 export const getCompanyStats = (req, res) => {
   const companyId = req.user.id;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const offset = (page - 1) * limit;
+
   getCompanyDashboardStats(companyId, (err, stats) => {
-    if (err) return res.status(500).json({ error: "Failed to fetch stats" });
-    res.json(stats);
+    if (err) {
+      console.error("Error fetching company stats:", err);
+      return res.status(500).json({ message: "Failed to fetch company stats", error: err });
+    }
+
+    getPaginatedJobsByCompany(companyId, limit, offset, (err, jobs, totalJobs) => {
+      if (err) {
+        console.error("Error fetching paginated jobs for company:", err);
+        return res.status(500).json({ message: "Failed to fetch paginated jobs", error: err });
+      }
+
+      res.json({
+        totalJobs: stats.totalJobs,
+        totalVacancies: stats.totalVacancies,
+        totalApplications: stats.totalApplications,
+        jobStats: jobs,
+        totalCount: totalJobs
+      });
+    });
   });
 };
 
-// Get Tansche Dashboard Stats
+// Get Tansche Dashboard Stats + Paginated Jobs
 export const getTanscheStats = (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const offset = (page - 1) * limit;
+
   getTanscheDashboardStats((err, stats) => {
     if (err) {
       console.error("Error fetching Tansche dashboard stats:", err);
-      return res.status(500).json({ message: "Error fetching Tansche dashboard stats" });
+      return res.status(500).json({ message: "Error fetching Tansche dashboard stats", error: err });
     }
 
-    console.log("Tansche Stats:", stats);  // Log to check data before sending response
-    res.json(stats);
+    getPaginatedJobsForTansche(limit, offset, (err, jobs, totalCount) => {
+      if (err) {
+        console.error("Error fetching paginated jobs for Tansche:", err);
+        return res.status(500).json({ message: "Error fetching paginated jobs", error: err });
+      }
+
+      res.json({
+        ...stats,
+        jobStats: jobs,
+        totalCount
+      });
+    });
   });
+};
+
+// Controller: Paginated Jobs by Company for Dashboard
+export const getPaginatedCompanyJobs = (req, res) => {
+  const companyId = req.user.id;
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const offset = (page - 1) * limit;
+
+  getPaginatedJobsByCompany(companyId, limit, offset, (err, jobs, total) => {
+    if (err) {
+      console.error('Error fetching paginated company jobs:', err);
+      return res.status(500).json({ message: 'Server Error', error: err });
+    }
+
+    res.status(200).json({
+      jobs,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+      totalJobs: total
+    });
+  });
+};
+
+// GET /notifications/my
+export const getMyNotifications = async (req, res) => {
+  try {
+    // Example: Fetch notifications from DB
+    const notifications = await Notification.find({ user: req.user.id }).sort({ createdAt: -1 });
+    res.json(notifications);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch notifications" });
+  }
+};
+
+// POST /notifications/mark-read
+export const markNotificationAsRead = async (req, res) => {
+  try {
+    const { notificationId } = req.body;
+    await Notification.updateOne(
+      { _id: notificationId, user: req.user.id },
+      { $set: { is_read: true } }
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to mark notification as read" });
+  }
 };

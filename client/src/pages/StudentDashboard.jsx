@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "../services/api";
 import Button from "../components/Button";
 
+
 const StudentDashboard = () => {
   const [view, setView] = useState("all");
   const [jobs, setJobs] = useState([]);
@@ -12,6 +13,9 @@ const StudentDashboard = () => {
   const [jobType, setJobType] = useState("");
   const [location, setLocation] = useState("");
   const [minSalary, setMinSalary] = useState("");
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     if (view === "all") {
@@ -20,6 +24,29 @@ const StudentDashboard = () => {
       fetchAppliedJobs();
     }
   }, [view, page, sort]);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await axios.get("/notifications/my");
+      setNotifications(res.data);
+      setUnreadCount(res.data.filter((n) => !n.is_read).length);
+    } catch (err) {
+      console.error("Error fetching notifications:", err);
+    }
+  };
+
+  const markNotificationAsRead = async (notificationId) => {
+  try {
+    await axios.post("/notifications/mark-read", { notificationId });
+    fetchNotifications(); // Refresh notifications
+  } catch (err) {
+    console.error("Error marking notification as read:", err);
+  }
+  };
 
   const fetchAllJobs = async () => {
     try {
@@ -75,6 +102,44 @@ const StudentDashboard = () => {
       {/* Sidebar */}
       <aside className="w-1/4 bg-white border-r p-6">
         <h2 className="text-lg font-semibold mb-6 text-blue-600">Job Search</h2>
+
+        {/* 🔔 Notification Icon */}
+        <div className="relative mb-6">
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="text-blue-600 font-semibold flex items-center space-x-2"
+          >
+            <span>🔔 Notifications</span>
+            {unreadCount > 0 && (
+              <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+
+          {showNotifications && (
+          <ul className="absolute z-10 bg-white border rounded shadow p-2 mt-2 w-64 max-h-60 overflow-y-auto">
+          {notifications.length > 0 ? (
+           notifications.map((n) => (
+           <li
+          key={n.id}
+          className={`p-2 text-sm border-b ${
+            n.is_read ? "text-gray-500" : "text-black font-semibold"
+          } cursor-pointer`}
+          onClick={() => markNotificationAsRead(n.id)}
+           >
+          {n.message}
+          <div className="text-xs text-gray-400">
+            {new Date(n.created_at).toLocaleString()}
+          </div>
+        </li>
+        ))
+         ) : (
+        <li className="p-2 text-sm text-gray-500">No notifications</li>
+        )}
+        </ul>
+        )}
+        </div>
 
         <div className="flex flex-col space-y-4">
           <Button label="View All Jobs" onClick={() => setView("all")} />

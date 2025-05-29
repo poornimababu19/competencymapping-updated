@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import API from '../services/api';
+
+const pageSize = 5; // or any number you want
 
 const TanscheDashboard = () => {
   const [stats, setStats] = useState({
@@ -9,19 +11,18 @@ const TanscheDashboard = () => {
     totalCompanies: 0,
     jobStats: [],
   });
-
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get('http://localhost:5000/api/tansche/dashboard', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        setLoading(true);
+        const res = await API.get(`/tansche/dashboard?page=${currentPage}&limit=${pageSize}`);
+        console.log(res.data);
         setStats(res.data);
+        setTotalCount(Number(res.data.totalJobs) || 0);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -30,7 +31,9 @@ const TanscheDashboard = () => {
     };
 
     fetchDashboardData();
-  }, []);
+  }, [currentPage]);
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   if (loading) {
     return <div className="text-center mt-10 text-lg">Loading Dashboard...</div>;
@@ -51,7 +54,7 @@ const TanscheDashboard = () => {
           <p className="text-xl font-bold">{stats.totalVacancies}</p>
         </div>
         <div className="bg-yellow-100 rounded-2xl p-4 shadow">
-          <h2 className="text-sm text-gray-600">Total students</h2>
+          <h2 className="text-sm text-gray-600">Total Students</h2>
           <p className="text-xl font-bold">{stats.totalApplications}</p>
         </div>
         <div className="bg-purple-100 rounded-2xl p-4 shadow">
@@ -71,23 +74,46 @@ const TanscheDashboard = () => {
             </tr>
           </thead>
           <tbody>
-            {stats.jobStats?.length === 0 ? (
+            {(stats.jobStats?.length ?? 0) === 0 ? (
               <tr>
                 <td colSpan="3" className="px-4 py-4 text-center text-gray-500">
                   No job stats available.
                 </td>
               </tr>
             ) : (
-              stats.jobStats.map((job) => (
-                <tr key={job.id} className="border-b">
-                  <td className="px-4 py-3">{job.title}</td>
-                  <td className="px-4 py-3">{job.vacancies ?? 0}</td>
-                  <td className="px-4 py-3">{job.appliedCount}</td>
-                </tr>
-              ))
-            )}
+                  stats.jobStats
+                  .slice((currentPage - 1) * pageSize, currentPage * pageSize)
+                  .map((job) => (
+                 <tr key={job.id} className="border-b">
+                 <td className="px-4 py-3">{job.title}</td>
+                 <td className="px-4 py-3">{job.vacancies ?? 0}</td>
+                 <td className="px-4 py-3">{job.appliedCount}</td>
+                 </tr>
+                ))  
+  )}
           </tbody>
         </table>
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="flex justify-center gap-4 mt-6">
+        <button
+          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+          disabled={currentPage === 1}
+          className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
+        >
+          Previous
+        </button>
+        <span className="px-4 py-2">
+          {`Page ${currentPage} of ${totalPages}`}
+        </span>
+        <button
+          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+          disabled={currentPage === totalPages}
+          className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
+        >
+          Next
+        </button>
       </div>
     </div>
   );

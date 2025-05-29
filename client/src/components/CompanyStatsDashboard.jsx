@@ -8,16 +8,18 @@ const CompanyStatsDashboard = () => {
     totalApplications: 0,
     jobStats: [],
   });
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const jobsPerPage = 10;
-
   const [loading, setLoading] = useState(true);
 
-  const fetchStats = async () => {
+  const [currentPage, setCurrentPage] = useState(1); // 🔥 Track page number
+  const [totalJobsCount, setTotalJobsCount] = useState(0); // 🔥 To manage page limits
+  const pageSize = 5; // Show 5 per page
+
+  const fetchStats = async (page = 1) => {
     try {
-      const res = await axios.get("/jobs/company/stats");
+      const res = await axios.get(`/jobs/company/stats?page=${page}&limit=${pageSize}`);
       setStats(res.data);
+      setTotalJobsCount(res.data.totalJobs); // Update total jobs count
+      console.log("Stats response:", res.data);
     } catch (err) {
       console.error("Failed to fetch stats", err);
     } finally {
@@ -26,20 +28,20 @@ const CompanyStatsDashboard = () => {
   };
 
   useEffect(() => {
-    fetchStats();
-  }, []);
+    fetchStats(currentPage);
+  }, [currentPage]);
 
-  // Pagination logic
-  const totalPages = Math.ceil(stats.jobStats.length / jobsPerPage);
-  const startIndex = (currentPage - 1) * jobsPerPage;
-  const currentJobs = stats.jobStats.slice(startIndex, startIndex + jobsPerPage);
-
-  const handlePrevious = () => {
-    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
+  const handleNextPage = () => {
+    const totalPages = Math.ceil(totalJobsCount / pageSize);
+    if (currentPage < totalPages) {
+      setCurrentPage(prev => prev + 1);
+    }
   };
 
-  const handleNext = () => {
-    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(prev => prev - 1);
+    }
   };
 
   if (loading) return <p className="text-center mt-10 text-lg">Loading...</p>;
@@ -64,7 +66,7 @@ const CompanyStatsDashboard = () => {
         </div>
       </div>
 
-      {/* Job Table */}
+      {/* Table */}
       <h3 className="text-xl font-semibold mb-2">Job Statistics</h3>
       <table className="w-full border border-gray-300 mb-4">
         <thead>
@@ -75,7 +77,7 @@ const CompanyStatsDashboard = () => {
           </tr>
         </thead>
         <tbody>
-          {currentJobs.map((job) => (
+          {(stats.jobStats || []).map((job) => (
             <tr key={job.id}>
               <td className="p-2 border">{job.title}</td>
               <td className="p-2 border">{job.vacancies}</td>
@@ -85,20 +87,19 @@ const CompanyStatsDashboard = () => {
         </tbody>
       </table>
 
-      {/* Pagination Buttons */}
-      <div className="flex justify-between">
+      {/* Pagination Controls */}
+      <div className="flex justify-center gap-4">
         <button
-          onClick={handlePrevious}
+          onClick={handlePrevPage}
           disabled={currentPage === 1}
-          className={`px-4 py-2 rounded ${currentPage === 1 ? "bg-gray-300 cursor-not-allowed" : "bg-blue-500 text-white hover:bg-blue-600"}`}
+          className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
         >
           Previous
         </button>
-        <span className="text-gray-700 self-center">Page {currentPage} of {totalPages}</span>
         <button
-          onClick={handleNext}
-          disabled={currentPage === totalPages || totalPages === 0}
-          className={`px-4 py-2 rounded ${currentPage === totalPages || totalPages === 0 ? "bg-gray-300 cursor-not-allowed" : "bg-blue-500 text-white hover:bg-blue-600"}`}
+          onClick={handleNextPage}
+          disabled={currentPage >= Math.ceil(totalJobsCount / pageSize)}
+          className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
         >
           Next
         </button>
